@@ -4,6 +4,8 @@ const express = require("express");
 const cors = require("cors");
 
 const pool = require("./config/database");
+const authRoutes = require("./routes/auth.routes");
+const errorHandler = require("./middleware/error.middleware");
 
 const app = express();
 
@@ -29,6 +31,10 @@ app.get("/api/health", async (req, res) => {
     });
   }
 });
+
+app.use("/api/auth", authRoutes);
+
+app.use(errorHandler);
 
 const PORT = process.env.PORT || 4000;
 
