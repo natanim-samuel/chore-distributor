@@ -8,6 +8,7 @@ const authRoutes = require("./routes/auth.routes");
 const errorHandler = require("./middleware/error.middleware");
 
 const app = express();
+const householdRoutes = require("./routes/household.routes");
 
 app.use(cors());
 app.use(express.json());
@@ -33,6 +34,7 @@ app.get("/api/health", async (req, res) => {
 });
 
 app.use("/api/auth", authRoutes);
+app.use("/api/households", householdRoutes);
 
 app.use(errorHandler);
 
