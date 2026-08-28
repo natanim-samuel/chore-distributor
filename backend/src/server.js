@@ -9,6 +9,7 @@ const errorHandler = require("./middleware/error.middleware");
 
 const app = express();
 const householdRoutes = require("./routes/household.routes");
+const choreRoutes = require("./routes/chore.routes");
 
 app.use(cors());
 app.use(express.json());
@@ -35,6 +36,7 @@ app.get("/api/health", async (req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/households", householdRoutes);
+app.use("/api", choreRoutes);
 
 app.use(errorHandler);
 
