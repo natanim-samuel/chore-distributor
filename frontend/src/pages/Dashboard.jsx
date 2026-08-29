@@ -1,28 +1,18 @@
-import { Link } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 function Dashboard() {
-  const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
   return (
     <div>
-      <h1>Chore Distributor</h1>
+      <h1>Dashboard</h1>
 
-      <h2>Welcome, {user?.name}! 👋</h2>
-
-      <p>Manage your households and distribute chores fairly.</p>
-
-      <hr />
-
-      <Link to="/households">
+      <button onClick={() => navigate("/households")}>
         Manage My Households
-      </Link>
+      </button>
 
-      <br />
-      <br />
-
-      <button onClick={logout}>
-        Logout
+      <button onClick={() => navigate("/chores")}>
+        Manage Chores
       </button>
     </div>
   );
