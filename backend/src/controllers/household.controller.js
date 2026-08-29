@@ -19,11 +19,10 @@ async function create(req, res, next) {
       });
     }
 
-    const household =
-      await householdService.createHousehold(
-        req.user.userId,
-        req.body.name
-      );
+    const household = await householdService.createHousehold(
+      req.user.id,
+      req.body.name
+    );
 
     return res.status(201).json({
       success: true,
@@ -39,10 +38,9 @@ async function create(req, res, next) {
 
 async function getAll(req, res, next) {
   try {
-    const households =
-      await householdService.getUserHouseholds(
-        req.user.userId
-      );
+    const households = await householdService.getUserHouseholds(
+      req.user.id
+    );
 
     return res.json({
       success: true,
@@ -57,11 +55,10 @@ async function getAll(req, res, next) {
 
 async function getById(req, res, next) {
   try {
-    const household =
-      await householdService.getHouseholdById(
-        req.user.userId,
-        req.params.id
-      );
+    const household = await householdService.getHouseholdById(
+      req.user.id,
+      req.params.id
+    );
 
     return res.json({
       success: true,
@@ -76,8 +73,7 @@ async function getById(req, res, next) {
 
 async function join(req, res, next) {
   try {
-    const errors =
-      validateJoinHouseholdInput(req.body);
+    const errors = validateJoinHouseholdInput(req.body);
 
     if (Object.keys(errors).length > 0) {
       return res.status(400).json({
@@ -87,11 +83,10 @@ async function join(req, res, next) {
       });
     }
 
-    const household =
-      await householdService.joinHousehold(
-        req.user.userId,
-        req.body.inviteCode
-      );
+    const household = await householdService.joinHousehold(
+      req.user.id,
+      req.body.inviteCode
+    );
 
     return res.json({
       success: true,
@@ -107,11 +102,10 @@ async function join(req, res, next) {
 
 async function getMembers(req, res, next) {
   try {
-    const members =
-      await householdService.getHouseholdMembers(
-        req.user.userId,
-        req.params.id
-      );
+    const members = await householdService.getHouseholdMembers(
+      req.user.id,
+      req.params.id
+    );
 
     return res.json({
       success: true,

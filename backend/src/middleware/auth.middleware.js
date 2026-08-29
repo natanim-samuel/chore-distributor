@@ -22,7 +22,10 @@ function authenticate(req, res, next) {
 
     const payload = verifyAccessToken(token);
 
-    req.user = payload;
+    req.user = {
+      id: payload.userId,
+      email: payload.email,
+    };
 
     next();
   } catch (error) {
