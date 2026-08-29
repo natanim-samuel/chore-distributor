@@ -10,10 +10,14 @@ function Dashboard() {
       <button onClick={() => navigate("/households")}>
         Manage My Households
       </button>
-
+        <br></br>
       <button onClick={() => navigate("/chores")}>
         Manage Chores
       </button>
+        <br></br>
+      <button onClick={() => navigate("/members")}>
+       Manage Members
+       </button>
     </div>
   );
 }

@@ -8,28 +8,18 @@ const {
   getMembers,
 } = require("../controllers/household.controller");
 
-const {
-  authenticate,
-} = require("../middleware/auth.middleware");
+const { authenticate } = require("../middleware/auth.middleware");
 
 const router = express.Router();
 
-// All household routes require authentication.
-router.use(authenticate);
+router.post("/", authenticate, create);
 
-// GET /api/households
-router.get("/", getAll);
+router.get("/", authenticate, getAll);
 
-// POST /api/households
-router.post("/", create);
+router.post("/join", authenticate, join);
 
-// POST /api/households/join
-router.post("/join", join);
+router.get("/:id", authenticate, getById);
 
-// GET /api/households/:id
-router.get("/:id", getById);
-
-// GET /api/households/:id/members
-router.get("/:id/members", getMembers);
+router.get("/:id/members", authenticate, getMembers);
 
 module.exports = router;
