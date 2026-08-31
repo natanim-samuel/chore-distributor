@@ -29,7 +29,7 @@ function Members() {
   }, [selectedHousehold]);
 
   function getToken() {
-    return localStorage.getItem("token");
+    return localStorage.getItem("accessToken");
   }
 
   function showMessage(text, type = "success") {
