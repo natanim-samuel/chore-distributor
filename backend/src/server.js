@@ -11,6 +11,7 @@ const app = express();
 const householdRoutes = require("./routes/household.routes");
 const choreRoutes = require("./routes/chore.routes");
 const assignmentRoutes = require("./routes/assignment.routes");
+const historyRoutes = require("./routes/history.routes");
 
 app.use(cors());
 app.use(express.json());
@@ -39,6 +40,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/households", householdRoutes);
 app.use("/api", choreRoutes);
 app.use("/api", assignmentRoutes);
+app.use("/api", historyRoutes);
 
 app.use(errorHandler);
 
