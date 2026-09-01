@@ -1,3 +1,4 @@
+const historyService = require("./history.service");
 const pool = require("../config/database");
 
 async function checkHouseholdMembership(userId, householdId) {
