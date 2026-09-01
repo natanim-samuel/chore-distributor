@@ -9,6 +9,7 @@ import HouseholdDetails from "./pages/HouseholdDetails";
 import Chores from "./pages/Chores";
 import Members from "./pages/Members";
 import ProtectedRoute from "./components/ProtectedRoute";
+import Assignments from "./pages/Assignments";
 
 function App() {
   return (
