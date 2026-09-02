@@ -1,14 +1,14 @@
-const historyService = require("./history.service"); 
 const pool = require("../config/database");
+const historyService = require("./history.service");
 
 async function checkHouseholdMembership(userId, householdId) {
   const result = await pool.query(
     `
-    SELECT id, role
-    FROM household_members
-    WHERE household_id = $1
-      AND user_id = $2
-      AND active = true
+      SELECT id, role
+      FROM household_members
+      WHERE household_id = $1
+        AND user_id = $2
+        AND active = true
     `,
     [householdId, userId]
   );
@@ -37,13 +37,14 @@ async function createAssignment(userId, householdId, data) {
     notes,
   } = data;
 
+  // Check that the chore belongs to this household.
   const choreResult = await pool.query(
     `
-    SELECT id
-    FROM chores
-    WHERE id = $1
-      AND household_id = $2
-      AND active = true
+      SELECT id
+      FROM chores
+      WHERE id = $1
+        AND household_id = $2
+        AND active = true
     `,
     [choreId, householdId]
   );
@@ -58,13 +59,14 @@ async function createAssignment(userId, householdId, data) {
     throw error;
   }
 
+  // Check that the assigned user belongs to this household.
   const memberResult = await pool.query(
     `
-    SELECT id
-    FROM household_members
-    WHERE household_id = $1
-      AND user_id = $2
-      AND active = true
+      SELECT id
+      FROM household_members
+      WHERE household_id = $1
+        AND user_id = $2
+        AND active = true
     `,
     [householdId, assignedTo]
   );
@@ -79,19 +81,20 @@ async function createAssignment(userId, householdId, data) {
     throw error;
   }
 
+  // Create assignment.
   const result = await pool.query(
     `
-    INSERT INTO assignments (
-      chore_id,
-      household_id,
-      assigned_to,
-      assigned_by,
-      assigned_date,
-      due_date,
-      notes
-    )
-    VALUES ($1, $2, $3, $4, $5, $6, $7)
-    RETURNING *
+      INSERT INTO assignments (
+        chore_id,
+        household_id,
+        assigned_to,
+        assigned_by,
+        assigned_date,
+        due_date,
+        notes
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      RETURNING *
     `,
     [
       choreId,
@@ -106,27 +109,16 @@ async function createAssignment(userId, householdId, data) {
 
   const assignment = result.rows[0];
 
-  await pool.query(
-    `
-    INSERT INTO chore_history (
-      assignment_id,
-      chore_id,
-      user_id,
-      household_id,
-      action,
-      new_status
-    )
-    VALUES ($1, $2, $3, $4, $5, $6)
-    `,
-    [
-      assignment.id,
-      assignment.chore_id,
-      userId,
-      householdId,
-      "ASSIGNED",
-      assignment.status,
-    ]
-  );
+  // Record activity history.
+  await historyService.createHistory({
+    assignmentId: assignment.id,
+    choreId: assignment.chore_id,
+    userId,
+    householdId: assignment.household_id,
+    action: "ASSIGNED",
+    oldStatus: null,
+    newStatus: assignment.status,
+  });
 
   return assignment;
 }
@@ -142,33 +134,33 @@ async function getHouseholdAssignments(
 
   const result = await pool.query(
     `
-    SELECT
-      a.*,
+      SELECT
+        a.*,
 
-      c.title AS chore_title,
-      c.description AS chore_description,
+        c.title AS chore_title,
+        c.description AS chore_description,
 
-      assigned_user.name AS assigned_to_name,
-      assigned_user.email AS assigned_to_email,
+        assigned_user.name AS assigned_to_name,
+        assigned_user.email AS assigned_to_email,
 
-      assigner.name AS assigned_by_name
+        assigner.name AS assigned_by_name
 
-    FROM assignments a
+      FROM assignments a
 
-    INNER JOIN chores c
-      ON c.id = a.chore_id
+      INNER JOIN chores c
+        ON c.id = a.chore_id
 
-    INNER JOIN users assigned_user
-      ON assigned_user.id = a.assigned_to
+      INNER JOIN users assigned_user
+        ON assigned_user.id = a.assigned_to
 
-    LEFT JOIN users assigner
-      ON assigner.id = a.assigned_by
+      LEFT JOIN users assigner
+        ON assigner.id = a.assigned_by
 
-    WHERE a.household_id = $1
+      WHERE a.household_id = $1
 
-    ORDER BY
-      a.due_date ASC,
-      a.created_at DESC
+      ORDER BY
+        a.due_date ASC,
+        a.created_at DESC
     `,
     [householdId]
   );
@@ -183,9 +175,9 @@ async function updateAssignmentStatus(
 ) {
   const assignmentResult = await pool.query(
     `
-    SELECT *
-    FROM assignments
-    WHERE id = $1
+      SELECT *
+      FROM assignments
+      WHERE id = $1
     `,
     [assignmentId]
   );
@@ -202,17 +194,12 @@ async function updateAssignmentStatus(
 
   const assignment = assignmentResult.rows[0];
 
-  await checkHouseholdMembership(
-    userId,
-    assignment.household_id
-  );
-
-  // Only the assigned person can complete/update their assignment.
   const membership = await checkHouseholdMembership(
     userId,
     assignment.household_id
   );
 
+  // Assigned user, owner, or admin can update.
   const canManage =
     assignment.assigned_to === userId ||
     membership.role === "OWNER" ||
@@ -228,6 +215,9 @@ async function updateAssignmentStatus(
     throw error;
   }
 
+  // Save the current status BEFORE updating.
+  const oldStatus = assignment.status;
+
   const completedAt =
     status === "COMPLETED"
       ? new Date()
@@ -235,13 +225,13 @@ async function updateAssignmentStatus(
 
   const result = await pool.query(
     `
-    UPDATE assignments
-    SET
-      status = $1,
-      completed_at = $2,
-      updated_at = NOW()
-    WHERE id = $3
-    RETURNING *
+      UPDATE assignments
+      SET
+        status = $1,
+        completed_at = $2,
+        updated_at = NOW()
+      WHERE id = $3
+      RETURNING *
     `,
     [
       status,
@@ -252,29 +242,18 @@ async function updateAssignmentStatus(
 
   const updatedAssignment = result.rows[0];
 
-  await pool.query(
-    `
-    INSERT INTO chore_history (
-      assignment_id,
-      chore_id,
-      user_id,
-      household_id,
-      action,
-      old_status,
-      new_status
-    )
-    VALUES ($1, $2, $3, $4, $5, $6, $7)
-    `,
-    [
-      assignmentId,
-      assignment.chore_id,
+  // Only create history if the status actually changed.
+  if (oldStatus !== updatedAssignment.status) {
+    await historyService.createHistory({
+      assignmentId: updatedAssignment.id,
+      choreId: updatedAssignment.chore_id,
       userId,
-      assignment.household_id,
-      "STATUS_CHANGED",
-      assignment.status,
-      status,
-    ]
-  );
+      householdId: updatedAssignment.household_id,
+      action: "STATUS_CHANGED",
+      oldStatus,
+      newStatus: updatedAssignment.status,
+    });
+  }
 
   return updatedAssignment;
 }
@@ -285,9 +264,9 @@ async function deleteAssignment(
 ) {
   const assignmentResult = await pool.query(
     `
-    SELECT *
-    FROM assignments
-    WHERE id = $1
+      SELECT *
+      FROM assignments
+      WHERE id = $1
     `,
     [assignmentId]
   );
@@ -323,10 +302,22 @@ async function deleteAssignment(
     throw error;
   }
 
+  // Record deletion before deleting because the assignment ID
+  // may become NULL in chore_history due to the foreign key rule.
+  await historyService.createHistory({
+    assignmentId: assignment.id,
+    choreId: assignment.chore_id,
+    userId,
+    householdId: assignment.household_id,
+    action: "DELETED",
+    oldStatus: assignment.status,
+    newStatus: null,
+  });
+
   await pool.query(
     `
-    DELETE FROM assignments
-    WHERE id = $1
+      DELETE FROM assignments
+      WHERE id = $1
     `,
     [assignmentId]
   );
